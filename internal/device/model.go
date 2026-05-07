@@ -1,6 +1,8 @@
 package device
 
-import "time"
+import (
+	"time"
+)
 
 type Heartbeat struct {
 	ID     string
@@ -9,7 +11,7 @@ type Heartbeat struct {
 
 type Stats struct {
 	Uptime        float64
-	AvgUploadTime string
+	AvgUploadTime float64
 }
 
 type UploadStat struct {

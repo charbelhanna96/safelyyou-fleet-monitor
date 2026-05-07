@@ -1,12 +1,14 @@
 package store
 
 import (
-	"fmt"
+	"errors"
 	"sync"
 	"time"
 
 	devicePkg "github.com/charbelhanna96/safelyyou-fleet-monitor/internal/device"
 )
+
+var ErrDeviceNotFound = errors.New("device not found")
 
 type MemoryStore struct {
 	mu           sync.RWMutex
@@ -39,39 +41,39 @@ func (s *MemoryStore) AddDevice(deviceID string) {
 	}
 }
 
-func (s *MemoryStore) AddHeartbeat(deviceID string, timestamp time.Time) error {
-	device, exists := s.GetDeviceState(deviceID)
+func (s *MemoryStore) AddHeartbeat(hb devicePkg.Heartbeat) error {
+	device, exists := s.GetDeviceState(hb.ID)
 	if !exists {
-		return fmt.Errorf("device %s not found", deviceID)
+		return ErrDeviceNotFound
 	}
 
 	device.mu.Lock()
 	defer device.mu.Unlock()
 	if device.HeartbeatsCount == 0 {
-		device.FirstHeartbeat = timestamp
-		device.LastHeartbeat = timestamp
+		device.FirstHeartbeat = hb.SentAt
+		device.LastHeartbeat = hb.SentAt
 	} else {
-		if timestamp.After(device.LastHeartbeat) {
-			device.LastHeartbeat = timestamp
+		if hb.SentAt.After(device.LastHeartbeat) {
+			device.LastHeartbeat = hb.SentAt
 		}
-		if timestamp.Before(device.FirstHeartbeat) {
-			device.FirstHeartbeat = timestamp
+		if hb.SentAt.Before(device.FirstHeartbeat) {
+			device.FirstHeartbeat = hb.SentAt
 		}
 	}
 	device.HeartbeatsCount++
 	return nil
 }
 
-func (s *MemoryStore) AddUploadTime(deviceID string, uploadTime int64) error {
-	device, exists := s.GetDeviceState(deviceID)
+func (s *MemoryStore) AddUploadTime(ut devicePkg.UploadStat) error {
+	device, exists := s.GetDeviceState(ut.ID)
 
 	if !exists {
-		return fmt.Errorf("device %s not found", deviceID)
+		return ErrDeviceNotFound
 	}
 
 	device.mu.Lock()
 	defer device.mu.Unlock()
-	device.UploadTimesSum += uploadTime
+	device.UploadTimesSum += ut.UploadTime
 	device.UploadTimesCount++
 	return nil
 }
@@ -87,7 +89,7 @@ func (s *MemoryStore) GetDeviceState(deviceID string) (*DeviceState, bool) {
 func (s *MemoryStore) GetStats(deviceId string) (devicePkg.Stats, error) {
 	state, exists := s.GetDeviceState(deviceId)
 	if !exists {
-		return devicePkg.Stats{}, fmt.Errorf("device %s not found", deviceId)
+		return devicePkg.Stats{}, ErrDeviceNotFound
 	}
 
 	state.mu.RLock()
@@ -95,16 +97,23 @@ func (s *MemoryStore) GetStats(deviceId string) (devicePkg.Stats, error) {
 
 	// uptime = (sumHeartbeats / numMinutesBetweenFirstAndLastHeartbeat) * 100
 	if state.HeartbeatsCount == 0 {
-		return devicePkg.Stats{Uptime: 0, AvgUploadTime: "0"}, nil
+		return devicePkg.Stats{Uptime: 0, AvgUploadTime: 0}, nil
 	}
 
-	// Minutes+1 because the window is inclusive of both first and last minute
-	uptime := float64(state.HeartbeatsCount) / float64(state.LastHeartbeat.Sub(state.FirstHeartbeat).Minutes()+1) * 100
+	lastMinute := state.LastHeartbeat.Unix() / 60
+	firstMinute := state.FirstHeartbeat.Unix() / 60
+	numMinutes := (lastMinute - firstMinute) + 1
+
+	// uptime is capped at 100% in case duplicate heartbeats are received (same minute heartbeats)
+	uptime := (float64(state.HeartbeatsCount) / float64(numMinutes)) * 100
+	if uptime > 100 {
+		uptime = 100
+	}
 
 	// timeDuration = avg(arrayOfUploadTimeDurations)
-	var timeDuration string
+	var timeDuration float64
 	if state.UploadTimesCount > 0 {
-		timeDuration = time.Duration(float64(state.UploadTimesSum) / float64(state.UploadTimesCount)).String()
+		timeDuration = float64(state.UploadTimesSum) / float64(state.UploadTimesCount)
 	}
 
 	return devicePkg.Stats{Uptime: uptime, AvgUploadTime: timeDuration}, nil

@@ -1,0 +1,36 @@
+package handlers
+
+import (
+	"encoding/json"
+	"errors"
+	"net/http"
+
+	"github.com/charbelhanna96/safelyyou-fleet-monitor/internal/api/web"
+	"github.com/charbelhanna96/safelyyou-fleet-monitor/internal/store"
+)
+
+func (h *Handler) PostUploadStat(rw http.ResponseWriter, request *http.Request) {
+	var uploadStatReq web.UploadStatRequest
+	deviceID := request.PathValue("device_id")
+
+	if err := json.NewDecoder(request.Body).Decode(&uploadStatReq); err != nil {
+		web.WriteError(rw, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	uploadStat := web.ConvertToUploadStat(uploadStatReq)
+	uploadStat.ID = deviceID
+
+	// add upload stat to store
+	err := h.store.AddUploadTime(uploadStat)
+	if err != nil {
+		if errors.Is(err, store.ErrDeviceNotFound) {
+			web.WriteError(rw, err.Error(), http.StatusNotFound)
+		} else {
+			web.WriteError(rw, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	rw.WriteHeader(http.StatusNoContent)
+}
