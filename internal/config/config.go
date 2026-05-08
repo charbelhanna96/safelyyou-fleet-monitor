@@ -15,12 +15,17 @@ type Config struct {
 	HTTP            HTTPConfig
 	ShutdownTimeout time.Duration
 	LogLevel        string
+	AppConfig       AppConfig
 }
 
 type HTTPConfig struct {
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
 	IdleTimeout  time.Duration
+}
+
+type AppConfig struct {
+	CSVPath string
 }
 
 func Load(envFile ...string) Config {
@@ -38,6 +43,9 @@ func Load(envFile ...string) Config {
 			ReadTimeout:  time.Duration(getEnvInt("HTTP_READ_TIMEOUT_SEC", 10)) * time.Second,
 			WriteTimeout: time.Duration(getEnvInt("HTTP_WRITE_TIMEOUT_SEC", 10)) * time.Second,
 			IdleTimeout:  time.Duration(getEnvInt("HTTP_IDLE_TIMEOUT_SEC", 60)) * time.Second,
+		},
+		AppConfig: AppConfig{
+			CSVPath: getEnv("CSV_PATH", "../../../devices.csv"),
 		},
 	}
 }
