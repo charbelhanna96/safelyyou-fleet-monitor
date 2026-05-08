@@ -26,7 +26,6 @@ type DeviceState struct {
 }
 
 func NewMemoryStore() *MemoryStore {
-	// using make to initialize the map to avoid nil map assignment errors when adding devices
 	return &MemoryStore{
 		deviceStates: make(map[string]*DeviceState),
 	}

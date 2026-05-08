@@ -38,11 +38,13 @@ func main() {
 	handler := handlers.NewHandler(memStore)
 
 	mux := http.NewServeMux()
-	// Get
+
 	mux.HandleFunc("GET /api/v1/devices/{device_id}/stats", handler.GetStats)
-	// Post
 	mux.HandleFunc("POST /api/v1/devices/{device_id}/heartbeat", handler.PostHeartbeat)
 	mux.HandleFunc("POST /api/v1/devices/{device_id}/stats", handler.PostUploadStat)
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
 
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,
