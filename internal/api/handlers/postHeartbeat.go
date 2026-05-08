@@ -3,8 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/charbelhanna96/safelyyou-fleet-monitor/internal/api/web"
 	"github.com/charbelhanna96/safelyyou-fleet-monitor/internal/store"
@@ -16,17 +16,8 @@ func (h *Handler) PostHeartbeat(rw http.ResponseWriter, request *http.Request) {
 	deviceID := request.PathValue("device_id")
 
 	if err := json.NewDecoder(request.Body).Decode(&heartbeatReq); err != nil {
+		slog.Error("decode error", "error", err, "device_id", deviceID)
 		web.WriteError(rw, "invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	if heartbeatReq.SentAt.IsZero() {
-		web.WriteError(rw, "sent_at is required", http.StatusBadRequest)
-		return
-	}
-
-	if heartbeatReq.SentAt.After(time.Now().Add(5 * time.Minute)) {
-		web.WriteError(rw, "sent_at cannot be in the future", http.StatusBadRequest)
 		return
 	}
 
