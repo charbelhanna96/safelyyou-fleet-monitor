@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/charbelhanna96/safelyyou-fleet-monitor/internal/api/handlers"
+	"github.com/charbelhanna96/safelyyou-fleet-monitor/internal/api/middleware"
 	"github.com/charbelhanna96/safelyyou-fleet-monitor/internal/config"
 	"github.com/charbelhanna96/safelyyou-fleet-monitor/internal/device"
 	"github.com/charbelhanna96/safelyyou-fleet-monitor/internal/store"
@@ -48,7 +49,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:         ":" + cfg.Port,
-		Handler:      mux,
+		Handler:      middleware.LoggingMiddleware(mux),
 		ReadTimeout:  cfg.HTTP.ReadTimeout,
 		WriteTimeout: cfg.HTTP.WriteTimeout,
 		IdleTimeout:  cfg.HTTP.IdleTimeout,

@@ -49,6 +49,23 @@
           "204": {
             "description": "the request was completed successfully"
           },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "BadRequestResponse",
+                  "type": "object",
+                  "required": ["msg"],
+                  "properties": {
+                    "msg": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
