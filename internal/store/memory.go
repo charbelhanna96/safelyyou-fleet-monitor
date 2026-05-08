@@ -96,26 +96,26 @@ func (s *MemoryStore) GetStats(deviceId string) (devicePkg.Stats, error) {
 	state.mu.RLock()
 	defer state.mu.RUnlock()
 
-	// uptime = (sumHeartbeats / numMinutesBetweenFirstAndLastHeartbeat) * 100
+	var avgUploadTime float64
+	if state.UploadTimesCount > 0 {
+		avgUploadTime = float64(state.UploadTimesSum) / float64(state.UploadTimesCount)
+	}
+
 	if state.HeartbeatsCount == 0 {
-		return devicePkg.Stats{Uptime: 0, AvgUploadTime: 0}, nil
+		return devicePkg.Stats{Uptime: 0, AvgUploadTime: avgUploadTime}, nil
 	}
 
 	lastMinute := state.LastHeartbeat.Unix() / 60
 	firstMinute := state.FirstHeartbeat.Unix() / 60
 	numMinutes := (lastMinute - firstMinute) + 1
 
-	// uptime is capped at 100% in case duplicate heartbeats are received (same minute heartbeats)
 	uptime := (float64(state.HeartbeatsCount) / float64(numMinutes)) * 100
 	if uptime > 100 {
 		uptime = 100
 	}
 
-	// timeDuration = avg(arrayOfUploadTimeDurations)
-	var timeDuration float64
-	if state.UploadTimesCount > 0 {
-		timeDuration = float64(state.UploadTimesSum) / float64(state.UploadTimesCount)
-	}
-
-	return devicePkg.Stats{Uptime: uptime, AvgUploadTime: timeDuration}, nil
+	return devicePkg.Stats{
+		Uptime:        uptime,
+		AvgUploadTime: avgUploadTime,
+	}, nil
 }
