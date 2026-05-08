@@ -45,7 +45,7 @@ func Load(envFile ...string) Config {
 			IdleTimeout:  time.Duration(getEnvInt("HTTP_IDLE_TIMEOUT_SEC", 60)) * time.Second,
 		},
 		AppConfig: AppConfig{
-			CSVPath: getEnv("CSV_PATH", "../../../devices.csv"),
+			CSVPath: getEnv("CSV_PATH", "devices.csv"),
 		},
 	}
 }

@@ -18,6 +18,15 @@ func (h *Handler) PostUploadStat(rw http.ResponseWriter, request *http.Request) 
 		return
 	}
 
+	if uploadStatReq.SentAt.IsZero() {
+		web.WriteError(rw, "sent_at is required", http.StatusBadRequest)
+		return
+	}
+	if uploadStatReq.UploadTime < 0 {
+		web.WriteError(rw, "upload_time must be non-negative", http.StatusBadRequest)
+		return
+	}
+
 	uploadStat := web.ConvertToUploadStat(uploadStatReq)
 	uploadStat.ID = deviceID
 
