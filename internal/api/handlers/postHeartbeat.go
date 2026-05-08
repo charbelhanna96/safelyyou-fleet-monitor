@@ -14,15 +14,16 @@ func (h *Handler) PostHeartbeat(rw http.ResponseWriter, request *http.Request) {
 	var heartbeatReq web.HeartbeatRequest
 	deviceID := request.PathValue("device_id")
 
+	if err := json.NewDecoder(request.Body).Decode(&heartbeatReq); err != nil {
+		web.WriteError(rw, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
 	if heartbeatReq.SentAt.IsZero() {
 		web.WriteError(rw, "sent_at is required", http.StatusBadRequest)
 		return
 	}
 
-	if err := json.NewDecoder(request.Body).Decode(&heartbeatReq); err != nil {
-		web.WriteError(rw, "invalid request body", http.StatusBadRequest)
-		return
-	}
 	heartbeat := web.ConvertToHeartbeat(heartbeatReq)
 	heartbeat.ID = deviceID
 
