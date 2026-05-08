@@ -32,12 +32,13 @@ func NewMemoryStore() *MemoryStore {
 	}
 }
 
-func (s *MemoryStore) AddDevice(deviceID string) {
+func (s *MemoryStore) AddDevices(deviceID []string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	if _, exists := s.deviceStates[deviceID]; !exists {
-		s.deviceStates[deviceID] = &DeviceState{}
+	for _, id := range deviceID {
+		if _, exists := s.deviceStates[id]; !exists {
+			s.deviceStates[id] = &DeviceState{}
+		}
 	}
 }
 
