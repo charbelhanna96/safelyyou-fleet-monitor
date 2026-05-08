@@ -54,9 +54,7 @@ No router framework was added. Go's standard `net/http` ServeMux supports method
 
 ## Security
 
-- Heartbeat `sent_at` values more than 5 minutes in the future are rejected to prevent invalid uptime calculations.
-- `upload_time` must be positive.
-- `sent_at` cannot be zero.
+- `upload_time` must not be negative.
 - HTTP server timeouts are configured for read, write, and idle connections.
 - No authentication was added because it is not part of the challenge requirements.
 
@@ -64,9 +62,9 @@ No router framework was added. Go's standard `net/http` ServeMux supports method
 
 1. **No persistence**: All device state is stored in memory. If the service restarts, all data is lost.
 
-2. **Future timestamp validation**: Heartbeats more than 5 minutes in the future are rejected. However, older timestamps are still accepted because devices may reconnect after being offline for a long time.
+2. **Timestamp validation**: Strict future timestamp validation was intentionally not enforced. In a production system, I would validate unreasonable future timestamps while still allowing delayed or buffered device metrics.
 
-3. **Uptime deduplication**: The uptime formula counts raw heartbeats rather than distinct minutes. Two heartbeats in the same minute count as two, but the window only has one slot. Uptime is capped at 100% to avoid impossible values, but the calculation is not a true "minutes with at least one heartbeat" count. A correct solution would store a `map[int64]struct{}` keyed by `timestamp.Unix() / 60` one entry per unique minute bucket. This was intentionally kept simple for the challenge, but would be the first thing I'd change in a production system.
+3. **Uptime deduplication**: The uptime formula counts raw heartbeats rather than distinct minutes. Two heartbeats in the same minute count as two, but the window only has one slot. Uptime is capped at 100% to avoid impossible values, but the calculation is not a true "minutes with at least one heartbeat" count. A stricter implementation would store a `map[int64]struct{}` keyed by `timestamp.Unix() / 60` one entry per unique minute bucket. This was intentionally kept simple for the challenge, but would be the first thing I'd change in a production system.
 
 4. **No authentication**: Any client that can reach the server can send data for any device.
 
