@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/charbelhanna96/safelyyou-fleet-monitor/internal/api/web"
 	"github.com/charbelhanna96/safelyyou-fleet-monitor/internal/store"
@@ -21,6 +22,11 @@ func (h *Handler) PostHeartbeat(rw http.ResponseWriter, request *http.Request) {
 
 	if heartbeatReq.SentAt.IsZero() {
 		web.WriteError(rw, "sent_at is required", http.StatusBadRequest)
+		return
+	}
+
+	if heartbeatReq.SentAt.After(time.Now().Add(5 * time.Minute)) {
+		web.WriteError(rw, "sent_at cannot be in the future", http.StatusBadRequest)
 		return
 	}
 
