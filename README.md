@@ -8,6 +8,12 @@ CSV_PATH=devices.csv go run ./cmd/server
 
 The service listens on port `6733` by default. After starting the server, run the simulator against port `6733`.
 
+## How to Run Unit Tests
+
+```bash
+go test -race ./...
+```
+
 ## Time Spent and Most Difficult Part
 
 I spent around 5-6 non-consecutive hours on this challenge.
@@ -69,6 +75,30 @@ No router framework was added. Go's standard `net/http` ServeMux supports method
 4. **No authentication**: Any client that can reach the server can send data for any device.
 
 5. **Upload stat `sent_at` not validated**: The OpenAPI spec marks `sent_at` as required in the upload stat request, but the device simulator does not include it or sends it at `0`. Validating its presence would reject all simulator requests. In a production system with real devices, `sent_at` should be validated and used for analysis of upload performance over time.
+
+6. **No metrics or tracing**: The service includes basic request logging, but it does not expose Prometheus metrics or distributed traces. In production, I would add metrics for request counts, latency, heartbeat ingestion, upload stat ingestion, and error rates.
+
+## API Contract Notes
+
+The provided OpenAPI spec does not document `400 Bad Request` responses for the POST endpoints. In practice, the handlers return `400` for malformed JSON or missing required fields. The `openapi.yml` in this repo has been updated to reflect this.
+
+The spec marks `sent_at` as required in the upload stat request body, but the device simulator sends `0` for this field. Validating `sent_at` as non zero would reject all simulator requests, so this validation was intentionally omitted for upload stats.
+
+## Performance & Production Safety
+
+- All request paths are O(1). no request loops or scans.
+- Device `sync.RWMutex` allows concurrent reads across devices without blocking.
+- HTTP server timeouts are configured to prevent slow client attacks.
+- Graceful shutdown gives in flight requests time to complete.
+- The service keeps only aggregate device state in memory and does not depend on external infrastructure such as a database or message broker.
+
+## Extensibility
+
+- The `DataAccess` interface decouples handlers from storage. Swapping the in-memory store for a database requires no handler changes.
+- Each handler is in its own file, making it easy for multiple engineers to work without conflicts.
+- New metrics follow the same pattern: add fields to `DeviceState`, add a method to `DataAccess`, add a handler.
+- Unit tests cover all store edge cases and can be run with `go test -race ./...`.
+- The storage implementation is isolated behind an interface, allowing unit tests to mock the persistence layer independently from HTTP handlers.
 
 ## AI Usage
 
