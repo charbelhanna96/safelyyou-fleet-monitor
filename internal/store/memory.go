@@ -106,9 +106,15 @@ func (s *MemoryStore) GetStats(deviceId string) (devicePkg.Stats, error) {
 
 	lastMinute := state.LastHeartbeat.Unix() / 60
 	firstMinute := state.FirstHeartbeat.Unix() / 60
-	numMinutes := (lastMinute - firstMinute) + 1
 
-	uptime := (float64(state.HeartbeatsCount) / float64(numMinutes)) * 100
+	numMinutes := lastMinute - firstMinute
+
+	var uptime float64
+	if numMinutes == 0 {
+		uptime = 100
+	} else {
+		uptime = (float64(state.HeartbeatsCount) / float64(numMinutes)) * 100
+	}
 	if uptime > 100 {
 		uptime = 100
 	}
